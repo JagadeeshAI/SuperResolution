@@ -13,7 +13,7 @@ class Config:
     out_dir = "./results/restormer_l1"
     log_file = os.path.join(out_dir, "logs.json")
     train_dir = "data/train"
-    val_dir = "data/Submission_input"
+    val_dir = "data/val"
     patch_size = 128
     Submission_input = "data/Submission_input"
     submission_save_dir = "data/Restomer_results"
@@ -23,6 +23,5 @@ class Config:
     model = "restormer"
     device = device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     patches = True
-
 
 print(f"Using device: {Config.device}")

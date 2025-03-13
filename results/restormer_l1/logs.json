@@ -1,6 +1,1 @@
-{
-    "last_epoch": 93,
-    "best_model": "./results/restormer_l1/best_model_20250313-041055_epoch27_loss0.0433_PSNR25.29.pth",
-    "best_val_loss": 0.043252462334930894,
-    "best_psnr": 25.292387580871583
-}
+{"last_epoch": 1, "best_model": "./results/restormer_l1/best_model_20250313-222931_epoch1_loss0.0204_PSNR29.16.pth", "best_val_loss": 0.02039773763983317, "best_psnr": 29.157752459903932}

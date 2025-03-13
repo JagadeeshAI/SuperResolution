@@ -23,7 +23,6 @@ from utils.util import (
 from data.loaderPatches import get_data_loaders
 
 
-
 wandb.init(project="RAW-SuperResolution", name="UNet-MSE-Training")
 
 
@@ -53,12 +52,12 @@ def train():
         train_loss = []
 
         for batch in tqdm(train_loader, desc=f"Epoch {epoch+1}/{Config.epochs}"):
-            
+
             if batch["lr"].dim() == 3:
-                lr_raw = batch["lr"].unsqueeze(0).to(Config.device)  
-                hr_raw = batch["hr"].unsqueeze(0).to(Config.device) 
+                lr_raw = batch["lr"].unsqueeze(0).to(Config.device)
+                hr_raw = batch["hr"].unsqueeze(0).to(Config.device)
             else:
-                lr_raw = batch["lr"].to(Config.device)  
+                lr_raw = batch["lr"].to(Config.device)
                 hr_raw = batch["hr"].to(Config.device)
 
             optimizer.zero_grad()
@@ -67,9 +66,6 @@ def train():
 
             if output.shape != hr_raw.shape:
                 output = interpolate(
-
-
-                    
                     output,
                     size=(hr_raw.shape[2], hr_raw.shape[3]),
                     mode="bilinear",

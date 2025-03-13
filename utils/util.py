@@ -13,12 +13,13 @@ import math
 import glob
 
 from config import Config
-from ASID.components.ASID import ASID
 from model.Restromer import Restormer
 from model.unet import UNet
 
 
-def save_checkpoint(model, optimizer, epoch, val_loss, psnr, best_val_loss, best_psnr, max_checkpoints=6):
+def save_checkpoint(
+    model, optimizer, epoch, val_loss, psnr, best_val_loss, best_psnr, max_checkpoints=6
+):
 
     timestamp = time.strftime("%Y%m%d-%H%M%S")
     model_path = os.path.join(
@@ -49,14 +50,14 @@ def save_checkpoint(model, optimizer, epoch, val_loss, psnr, best_val_loss, best
             },
             f,
         )
-    
+
     # Delete oldest checkpoints if exceeding max_checkpoints
     checkpoint_files = glob.glob(os.path.join(Config.out_dir, "best_model_*.pth"))
     checkpoint_files.sort(key=os.path.getctime)  # Sort by creation time
-    
+
     # If we have more than max_checkpoints files after adding the new one, delete oldest
     if len(checkpoint_files) > max_checkpoints:
-        files_to_delete = checkpoint_files[:len(checkpoint_files) - max_checkpoints]
+        files_to_delete = checkpoint_files[: len(checkpoint_files) - max_checkpoints]
         for file_path in files_to_delete:
             try:
                 os.remove(file_path)
@@ -66,6 +67,7 @@ def save_checkpoint(model, optimizer, epoch, val_loss, psnr, best_val_loss, best
 
     print(f"Model saved: {model_path}")
     wandb.save(model_path)
+
 
 def calculate_psnr(y_true, y_pred):
     mse = torch.mean((y_true - y_pred) ** 2)
@@ -125,10 +127,9 @@ def define_Model():
         model = UNet().to(device)
     elif Config.model == "restormer":
         model = Restormer().to(device)
-    elif Config.model == "asid":
-        model = ASID(num_in_ch=4, num_out_ch=4, num_feat=48, **params).to(device)
     if model:
         return model
+
 
 def update_last_epoch(last_epoch):
 
@@ -147,12 +148,13 @@ def update_last_epoch(last_epoch):
         with open(Config.log_file, "r") as f:
             data = json.load(f)
     except (json.JSONDecodeError, FileNotFoundError):
-        data = default_data 
+        data = default_data
 
     data["last_epoch"] = last_epoch
 
     with open(Config.log_file, "w") as f:
         json.dump(data, f, indent=4)
+
 
 def crop_img(image, base=64):
     """
@@ -162,22 +164,22 @@ def crop_img(image, base=64):
     b, c, h, w = image.shape
     crop_h = h % base
     crop_w = w % base
-    
+
     h_start = crop_h // 2
     h_end = h - crop_h + crop_h // 2
     w_start = crop_w // 2
     w_end = w - crop_w + crop_w // 2
-    
+
     return image[:, :, h_start:h_end, w_start:w_end]
 
+
 def validate(model, val_loader, criterion):
-    model = Restormer().to(Config.device).eval()
     val_loss, psnr_values = [], []
     with torch.no_grad():
         for batch in tqdm(val_loader, desc="Validation"):
             lr_raw = batch["lr"].to(Config.device)
             hr_raw = batch["hr"].to(Config.device)
-            
+
             lr_raw = crop_img(lr_raw, base=16)
             output = model(lr_raw)
             output = F.interpolate(
@@ -189,9 +191,7 @@ def validate(model, val_loader, criterion):
             val_loss.append(loss.item())
             psnr = calculate_psnr(output, hr_raw)
             psnr_values.append(psnr)
-        
+
         avg_val_loss, avg_psnr = np.mean(val_loss), np.mean(psnr_values)
-    
+
     return avg_val_loss, avg_psnr
-
-

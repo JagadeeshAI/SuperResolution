@@ -19,10 +19,11 @@ from utils.util import (
     define_Model,
     update_last_epoch,
     validate,
-    calculate_psnr
+    calculate_psnr,
 )
 from data.loaderPatches import get_data_loaders
 from model.Restromer import Restormer
+
 
 def crop_img(image, base=64):
     """
@@ -32,17 +33,19 @@ def crop_img(image, base=64):
     b, c, h, w = image.shape
     crop_h = h % base
     crop_w = w % base
-    
+
     # Calculate start and end indices
     h_start = crop_h // 2
     h_end = h - crop_h + crop_h // 2
     w_start = crop_w // 2
     w_end = w - crop_w + crop_w // 2
-    
+
     # Crop while maintaining batch and channel dimensions
     return image[:, :, h_start:h_end, w_start:w_end]
 
+
 criterion = nn.L1Loss()
+
 
 def validate():
     model = Restormer().to(Config.device).eval()
@@ -58,7 +61,7 @@ def validate():
         for batch in tqdm(val_loader, desc="Validation"):
             lr_raw = batch["lr"].to(Config.device)
             hr_raw = batch["hr"].to(Config.device)
-            
+
             lr_raw = crop_img(lr_raw, base=16)
             output = model(lr_raw)
             output = F.interpolate(
@@ -68,10 +71,10 @@ def validate():
             val_loss.append(loss.item())
             psnr = calculate_psnr(output, hr_raw)
             psnr_values.append(psnr)
-        
+
         avg_val_loss, avg_psnr = np.mean(val_loss), np.mean(psnr_values)
 
-    print(f"The avergae PSNR is {avg_psnr}")    
+    print(f"The avergae PSNR is {avg_psnr}")
     return avg_val_loss, avg_psnr
 
 

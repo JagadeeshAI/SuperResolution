@@ -59,9 +59,10 @@ def printShapes():
 if __name__ == "__main__":
     # printShapes()
     import numpy as np
-# /home/jagadeesh/Downloads/Restomer_results_Light_Weight_65/Restomer_results/1.npz
 
-    raw = np.load("data/train/200.npz")
+    # /home/jagadeesh/Downloads/Restomer_results_Light_Weight_65/Restomer_results/1.npz
+
+    raw = np.load("data/Restomer_results/1.npz")
     print("The shape of the input is ")
     raw_img = raw["raw"]
     print(raw_img.shape)

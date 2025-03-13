@@ -5,7 +5,7 @@ import torch.nn.functional as F
 # def extract_patches(tensor, patch_size):
 #     """
 #     Divides the input tensor into patches and moves patches to the batch dimension.
-    
+
 #     Args:
 #         tensor (torch.Tensor): Input tensor of shape (B, C, H, W)
 #         patch_size (int): Size of each square patch
@@ -20,44 +20,45 @@ import torch.nn.functional as F
 #     tensor = tensor.unfold(2, patch_size, patch_size).unfold(3, patch_size, patch_size)
 #     tensor = tensor.permute(0, 2, 3, 1, 4, 5).contiguous()
 #     tensor = tensor.view(B * (H // patch_size) * (W // patch_size), C, patch_size, patch_size)
-    
+
 #     return tensor
 
 
 def extract_patches_overlapping(tensor, patch_size, overlap=0.5):
     """
     Divides the input tensor into patches with specified overlap and moves patches to the batch dimension.
-    
+
     Args:
         tensor (torch.Tensor): Input tensor of shape (B, C, H, W)
         patch_size (int): Size of each square patch
         overlap (float): Fraction of overlap between patches (default: 0.5 for 50% overlap)
 
     Returns:
-        torch.Tensor: Tensor with patches moved to batch dimension 
+        torch.Tensor: Tensor with patches moved to batch dimension
     """
     B, C, H, W = tensor.shape
-    
+
     # Calculate stride based on overlap
     stride = int(patch_size * (1 - overlap))
-    
+
     # Reshape and permute to extract patches
     tensor = tensor.unfold(2, patch_size, stride).unfold(3, patch_size, stride)
-    
+
     # Calculate new dimensions based on stride
     patches_h = (H - patch_size) // stride + 1
     patches_w = (W - patch_size) // stride + 1
-    
+
     # Reshape to get the patches in batch dimension
     tensor = tensor.permute(0, 2, 3, 1, 4, 5).contiguous()
     tensor = tensor.view(B * patches_h * patches_w, C, patch_size, patch_size)
-    
+
     return tensor
+
 
 def select_random_patches(patches, num_patches=4):
     """
     Selects random patches from the batch of patches.
-    
+
     Args:
         patches (torch.Tensor): Tensor of patches with shape (B*num_patches, C, patch_size, patch_size)
         num_patches (int): Number of random patches to select
