@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 from glob import glob
 from config import Config
-from data.make_patches import extract_patches_overlapping, select_random_patches
+from data.make_patches import extract_patches, select_random_patches
 
 
 def downsample_raw(raw):
@@ -43,8 +43,18 @@ class LazyRAWDataset(Dataset):
             for i, path in enumerate(self.data_paths):
                 try:
                     with np.load(path) as data:
-                        for j in range(4):
-                            self.sample_map.append((i, j))
+                            hr_img = data["raw"].astype(np.float32)
+                            max_val = data["max_val"]
+
+                            hr_img = hr_img / max_val
+                            hr_img = np.expand_dims(hr_img, axis=0)
+                            hr_img = np.transpose(hr_img, (0, 3, 1, 2))
+                            hr_img = torch.from_numpy(hr_img)
+                            _,totalPatches = extract_patches(hr_img, patch_size=512)
+                            
+                            for j in range(totalPatches):
+
+                                self.sample_map.append((i, j))
                 except Exception as e:
                     print(f"Error inspecting {path}: {str(e)}")
             print(f"Will create {len(self.sample_map)} LR-HR patch pairs on demand")
@@ -74,9 +84,9 @@ class LazyRAWDataset(Dataset):
 
             if self.use_patches:
                 # Extract patches from HR image
-                hr_patches = extract_patches_overlapping(hr_img, patch_size=128)
-                random_patches = select_random_patches(hr_patches, num_patches=4)
-                hr_patch = random_patches[patch_idx]
+                hr_patches,totalPatches = extract_patches(hr_img, patch_size=512)
+                # random_patches = select_random_patches(hr_patches, num_patches=4)
+                hr_patch = hr_patches[patch_idx]
 
                 # Create low-resolution version of the specific HR patch
                 # Ensure it's in the right format for downsampling

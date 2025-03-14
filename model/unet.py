@@ -75,16 +75,13 @@ class Decoder(nn.Module):
 class UNet(nn.Module):
     def __init__(self, double_precision=True):
         super().__init__()
-        # Input is 4-channel RAW
         self.encoder = Encoder(chs=(4, 64, 128, 256, 512))
         self.decoder = Decoder(chs=(512, 256, 128, 64))
-        self.upsample = nn.PixelShuffle(2)  # Add pixel shuffle for x2 upscaling
-        self.pre_pixelshuffle = nn.Conv2d(64, 16, 1)  # 16=4*4 for pixel shuffle
+        self.upsample = nn.PixelShuffle(2)  
+        self.pre_pixelshuffle = nn.Conv2d(64, 16, 1)  
         self.final = nn.Conv2d(4, 4, 3, padding=1)
 
-        # Convert model to double precision if requested
-        # if double_precision:
-        #     self.to(torch.double)
+        
 
     def forward(self, x):
         input_h, input_w = x.shape[2], x.shape[3]
@@ -143,4 +140,4 @@ if __name__ == "__main__":
         )
 
     params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"Total trainable parameters: {params:,}")
+    print(f"Total trainable parameters: {params / 1e6:.2f}M")

@@ -49,6 +49,7 @@ def train():
 
     for epoch in range(start_epoch, Config.epochs):
         model.train()
+        model=model.float()
         train_loss = []
 
         for batch in tqdm(train_loader, desc=f"Epoch {epoch+1}/{Config.epochs}"):
@@ -57,8 +58,8 @@ def train():
                 lr_raw = batch["lr"].unsqueeze(0).to(Config.device)
                 hr_raw = batch["hr"].unsqueeze(0).to(Config.device)
             else:
-                lr_raw = batch["lr"].to(Config.device)
-                hr_raw = batch["hr"].to(Config.device)
+                lr_raw = batch["lr"].to(Config.device).float()
+                hr_raw = batch["hr"].to(Config.device).float()
 
             optimizer.zero_grad()
 

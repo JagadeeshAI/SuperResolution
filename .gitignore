@@ -51,3 +51,4 @@ pip-log.txt
 # Ignore VS Code and PyCharm settings
 .vscode/
 .idea/
+/wandb

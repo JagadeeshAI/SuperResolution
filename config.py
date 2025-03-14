@@ -19,7 +19,7 @@ class Config:
     submission_save_dir = "data/Restomer_results"
     train_batch_size = 1
     val_batch_size = 1
-    RESUME = False
+    RESUME = True
     model = "restormer"
     device = device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     patches = True
