@@ -122,6 +122,26 @@ def load_checkpoint(model, optimizer, device):
     return 0, float("inf"), float("-inf")
 
 
+def downsample_raw(raw):
+    """
+    Downsamples a 4-channel packed RAW image by a factor of 2.
+    The input raw should be a [H/2, W/2, 4] tensor -- with respect to its mosaiced version [H,w]
+    Output is a [H/4, W/4, 4] tensor, preserving the RGGB pattern.
+    """
+    if len(raw.shape) == 3:  
+        raw = raw.permute(2, 0, 1).unsqueeze(0)  
+    elif len(raw.shape) == 4 and raw.shape[1] == 4:  
+        pass
+    else:
+        raise ValueError(f"Unexpected shape for raw: {raw.shape}")
+        
+    downsampled_image = F.avg_pool2d(raw, kernel_size=2, stride=2, padding=0)
+    
+    if len(raw.shape) == 4 and raw.shape[0] == 1:
+        downsampled_image = downsampled_image.squeeze(0).permute(1, 2, 0)
+        
+    return downsampled_image
+
 def define_Model():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if Config.model == "unet":

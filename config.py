@@ -12,7 +12,7 @@ class Config:
     loss = "l1"
     out_dir = "./results/restromer_l1"
     log_file = os.path.join(out_dir, "logs.json")
-    train_dir = "data/train"
+    train_dir = "data/val"
     val_dir = "data/val"
     patch_size = 128
     Submission_input = "data/Submission_input"

@@ -8,34 +8,6 @@ from config import Config
 from data.make_patches import extract_patches, select_random_patches
 
 
-def crop_img_by_percentage(image, percentage=50):
-    """
-    Crop an image by a specified percentage from all sides.
-    
-    Args:
-        image: Tensor of shape [batch, channels, height, width]
-        percentage: Float between 0 and 100 specifying how much to crop from each side
-                   (e.g., 25 means crop 25% from each side, keeping the middle 50%)
-    
-    Returns:
-        Cropped image tensor
-    """
-    if percentage < 0 or percentage >= 50:
-        raise ValueError("Percentage must be between 0 and 49.9")
-    
-    batch_size, channels, height, width = image.shape
-    
-    # Calculate crop amounts in pixels
-    height_crop = int(height * percentage / 100)
-    width_crop = int(width * percentage / 100)
-    
-    # Perform the crop
-    cropped_img = image[:, :, 
-                         height_crop:height-height_crop, 
-                         width_crop:width-width_crop]
-    
-    return cropped_img
-
 def downsample_raw(raw):
     """
     Downsamples a 4-channel packed RAW image by a factor of 2.
@@ -63,14 +35,6 @@ class LazyRAWDataset(Dataset):
         print(f"Found {len(self.data_paths)} samples")
 
         self.use_patches = Config.patches if use_patches is None else use_patches
-        self.use_half = getattr(Config, 'useHalf', False)  # Get useHalf from Config, default to False if not present
-        
-        # Only apply useHalf to training data, not validation
-        # And only if patches are not being used already
-        self.apply_half = self.use_half and not self.use_patches
-        
-        if self.apply_half:
-            print(f"Using half mode: Images will be split into 4 before processing")
 
         if self.use_patches:
             self.sample_map = []
@@ -86,18 +50,12 @@ class LazyRAWDataset(Dataset):
                             hr_img = torch.from_numpy(hr_img)
                             _,totalPatches = extract_patches(hr_img, patch_size=512)
                             
-                            for j in range(totalPatches):
+                            for j in range(4):
+
                                 self.sample_map.append((i, j))
                 except Exception as e:
                     print(f"Error inspecting {path}: {str(e)}")
             print(f"Will create {len(self.sample_map)} LR-HR patch pairs on demand")
-        elif self.apply_half:
-            # For half mode, each file will produce 4 training samples
-            self.sample_map = []
-            for i in range(len(self.data_paths)):
-                for j in range(4):  # 4 quarters per image
-                    self.sample_map.append((i, j))
-            print(f"Will create {len(self.sample_map)} quarter-image pairs on demand")
         else:
             self.sample_map = list(range(len(self.data_paths)))
             print(f"Will process {len(self.sample_map)} full images on demand")
@@ -109,9 +67,6 @@ class LazyRAWDataset(Dataset):
         try:
             if self.use_patches:
                 file_idx, patch_idx = self.sample_map[idx]
-                path = self.data_paths[file_idx]
-            elif self.apply_half:
-                file_idx, quarter_idx = self.sample_map[idx]
                 path = self.data_paths[file_idx]
             else:
                 path = self.data_paths[idx]
@@ -126,8 +81,7 @@ class LazyRAWDataset(Dataset):
             hr_img = torch.from_numpy(hr_img)
 
             if self.use_patches:
-                # Standard patches mode
-                hr_patches, totalPatches = extract_patches(hr_img, patch_size=512)
+                hr_patches,totalPatches = extract_patches(hr_img, patch_size=512)
                 hr_patch = hr_patches[patch_idx]
 
                 hr_patch_for_down = hr_patch.unsqueeze(0)  
@@ -142,28 +96,7 @@ class LazyRAWDataset(Dataset):
                     "max": max_val,
                     "filename": os.path.basename(path),
                 }
-            elif self.apply_half:
-                # Half mode - split HR image first, then downsample each quarter
-                print(f"Before splitting - HR shape: {hr_img.shape}")
-                
-                # Split the HR image into 4 parts
-                hr_quarters = crop_img_by_percentage(hr_img)
-                hr_quarter = hr_quarters[quarter_idx]
-                
-                print(f"After splitting - Quarter {quarter_idx} shape: {hr_quarter.shape}")
-                
-                # Downsample this quarter
-                lr_quarter = downsample_raw(hr_quarter)
-                lr_quarter = lr_quarter.permute(2, 0, 1).unsqueeze(0)
-                
-                return {
-                    "lr": lr_quarter,
-                    "hr": hr_quarter,
-                    "max": max_val,
-                    "filename": f"{os.path.basename(path)}_q{quarter_idx}",
-                }
             else:
-                # Standard full image mode
                 lr_img = downsample_raw(hr_img)
                 lr_img = lr_img.permute(2, 0, 1).unsqueeze(0)
 
@@ -189,7 +122,6 @@ class SubmissionDataset(Dataset):
     def __init__(self, data_dir):
         self.data_paths = sorted(glob(os.path.join(data_dir, "*.npz")))
         print(f"Found {len(self.data_paths)} submission samples")
-        # Not applying useHalf for the submission dataset as per requirement
 
     def __len__(self):
         return len(self.data_paths)
@@ -228,6 +160,7 @@ def simple_collate(batch):
     valid_batch = [item for item in batch if item is not None]
     
     if not valid_batch:
+
         return {
             "lr": torch.zeros((1, 4, 32, 32), dtype=torch.float32),
             "hr": torch.zeros((1, 4, 64, 64), dtype=torch.float32),
@@ -295,9 +228,7 @@ def get_data_loaders(
     num_workers=0
 ):
     train_use_patches = Config.patches
-    use_half = getattr(Config, 'useHalf', False)
-    
-    print(f"Creating training dataset with patches={train_use_patches}, useHalf={use_half}")
+    print(f"Creating training dataset with patches={train_use_patches}")
     train_dataset = LazyRAWDataset(train_data_dir, use_patches=train_use_patches)
 
     train_loader = DataLoader(
@@ -309,7 +240,7 @@ def get_data_loaders(
         pin_memory=True,
     )
 
-    print("Creating validation dataset with NO patches and NO half mode (full images)")
+    print("Creating validation dataset with NO patches (full images)")
     val_dataset = LazyRAWDataset(val_data_dir, use_patches=False)
     val_loader = DataLoader(
         val_dataset,
@@ -320,11 +251,9 @@ def get_data_loaders(
         pin_memory=True,
     )
     
-    submission_loader = None
     if submission_dir:
         print(f"Creating submission dataset from {submission_dir}")
         submission_dataset = SubmissionDataset(submission_dir)
-        
         submission_loader = DataLoader(
             submission_dataset,
             batch_size=1,  
