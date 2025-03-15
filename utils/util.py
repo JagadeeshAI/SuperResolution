@@ -95,6 +95,7 @@ def load_checkpoint(model, optimizer, device):
             last_epoch = logs.get("last_epoch", 0)
 
             if checkpoint_path and os.path.exists(checkpoint_path):
+                print(checkpoint_path)
                 checkpoint = torch.load(
                     checkpoint_path, map_location=device, weights_only=False
                 )
@@ -124,6 +125,7 @@ def load_checkpoint(model, optimizer, device):
 def define_Model():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if Config.model == "unet":
+        print("we are using unet model")
         model = UNet().to(device)
     elif Config.model == "restormer":
         model = Restormer().to(device)

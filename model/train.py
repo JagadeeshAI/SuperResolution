@@ -19,8 +19,9 @@ from utils.util import (
     define_Model,
     update_last_epoch,
     validate,
+    crop_img
 )
-from data.loaderPatches import get_data_loaders
+from data.loader import get_data_loaders
 
 
 wandb.init(project="RAW-SuperResolution", name="UNet-MSE-Training")
@@ -41,7 +42,7 @@ def train():
     elif Config.loss == "l1":
         criterion = nn.L1Loss()
 
-    train_loader, val_loader = get_data_loaders()
+    train_loader, val_loader,_ = get_data_loaders()
 
     start_epoch, best_val_loss, best_psnr = load_checkpoint(
         model, optimizer, Config.device
@@ -54,16 +55,12 @@ def train():
 
         for batch in tqdm(train_loader, desc=f"Epoch {epoch+1}/{Config.epochs}"):
 
-            if batch["lr"].dim() == 3:
-                lr_raw = batch["lr"].unsqueeze(0).to(Config.device)
-                hr_raw = batch["hr"].unsqueeze(0).to(Config.device)
-            else:
-                lr_raw = batch["lr"].to(Config.device).float()
-                hr_raw = batch["hr"].to(Config.device).float()
+            lr_raw = batch["lr"].to(Config.device).float()
+            hr_raw = batch["hr"].to(Config.device).float()
 
             optimizer.zero_grad()
 
-            output = model(lr_raw)
+            output = model(crop_img(lr_raw))
 
             if output.shape != hr_raw.shape:
                 output = interpolate(

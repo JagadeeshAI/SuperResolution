@@ -20,35 +20,16 @@ from utils.util import (
     update_last_epoch,
     validate,
     calculate_psnr,
+    crop_img
 )
-from data.loaderPatches import get_data_loaders
-from model.Restromer import Restormer
-
-
-def crop_img(image, base=64):
-    """
-    Crops a 4D tensor [B, C, H, W] to make H and W multiples of base.
-    Returns tensor in the same format.
-    """
-    b, c, h, w = image.shape
-    crop_h = h % base
-    crop_w = w % base
-
-    # Calculate start and end indices
-    h_start = crop_h // 2
-    h_end = h - crop_h + crop_h // 2
-    w_start = crop_w // 2
-    w_end = w - crop_w + crop_w // 2
-
-    # Crop while maintaining batch and channel dimensions
-    return image[:, :, h_start:h_end, w_start:w_end]
-
+from data.loader import get_data_loaders
+from model.unet import UNet
 
 criterion = nn.L1Loss()
 
 
 def validate():
-    model = Restormer().to(Config.device).eval()
+    model = define_Model()
     optimizer = torch.optim.Adam(
         model.parameters(), lr=Config.lr, weight_decay=Config.lr_decay
     )
@@ -56,14 +37,14 @@ def validate():
         model, optimizer, Config.device
     )
     val_loss, psnr_values = [], []
-    train_loader, val_loader = get_data_loaders()
+    train_loader, val_loader,_ = get_data_loaders()
     with torch.no_grad():
         for batch in tqdm(val_loader, desc="Validation"):
             lr_raw = batch["lr"].to(Config.device)
             hr_raw = batch["hr"].to(Config.device)
 
-            lr_raw = crop_img(lr_raw, base=16)
-            output = model(lr_raw)
+            # lr_raw = crop_img(lr_raw, base=16)
+            output = model(crop_img(lr_raw))
             output = F.interpolate(
                 output, size=hr_raw.shape[2:], mode="bilinear", align_corners=False
             )

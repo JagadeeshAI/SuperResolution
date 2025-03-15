@@ -18,36 +18,37 @@ from config import Config
 from model.Restromer import Restormer
 from utils.util import (
     load_checkpoint,
+    define_Model
 )
-from data.loaderPatches import get_data_loaders
+from data.loader import get_data_loaders
 
 
-def crop_img(image, base=64):
-    """
-    Crops a 4D tensor [B, C, H, W] to make H and W multiples of base.
-    Returns tensor in the same format.
-    """
-    b, c, h, w = image.shape
-    crop_h = h % base
-    crop_w = w % base
+# def crop_img(image, base=64):
+#     """
+#     Crops a 4D tensor [B, C, H, W] to make H and W multiples of base.
+#     Returns tensor in the same format.
+#     """
+#     b, c, h, w = image.shape
+#     crop_h = h % base
+#     crop_w = w % base
 
-    h_start = crop_h // 2
-    h_end = h - crop_h + crop_h // 2
-    w_start = crop_w // 2
-    w_end = w - crop_w + crop_w // 2
+#     h_start = crop_h // 2
+#     h_end = h - crop_h + crop_h // 2
+#     w_start = crop_w // 2
+#     w_end = w - crop_w + crop_w // 2
 
-    return image[:, :, h_start:h_end, w_start:w_end]
+#     return image[:, :, h_start:h_end, w_start:w_end]
 
 
 def generate_submissions():
-    model = Restormer().to(Config.device)
+    model = define_Model()
 
     optimizer = torch.optim.Adam(
         model.parameters(), lr=Config.lr, weight_decay=Config.lr_decay
     )
 
     
-    _, val_loader = get_data_loaders()
+    _, _, sub_loader = get_data_loaders()
 
     load_checkpoint(model, optimizer, Config.device)
 
@@ -55,17 +56,16 @@ def generate_submissions():
 
     with torch.no_grad():
         for idx, batch in enumerate(
-            tqdm(val_loader, desc="Processing validation files")
+            tqdm(sub_loader, desc="Processing validation files")
         ):
-            hr_raw = batch["hr"].to(Config.device)
-            max=batch["max"]
+            input_raw = batch["raw"].to(Config.device)
+            max = batch["max"][0]
             filename = batch["filename"][0]
-            hr_raw = crop_img(hr_raw, base=16)
 
-            sr_output = model(hr_raw)
+            sr_output = model(input_raw)
 
             sr_output = sr_output.squeeze(0).permute(1, 2, 0)
-
+            
             raw_img = (sr_output.cpu().numpy() * float(max)).astype(np.uint16)
 
             if isinstance(filename, str):
