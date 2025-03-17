@@ -27,7 +27,7 @@ def generate_submissions():
         model.parameters(), lr=Config.lr, weight_decay=Config.lr_decay
     )
     
-    _, sub_loader = get_data_loaders(val_only=True)
+    _, sub_loader = get_data_loaders(Train_also=False)
     load_checkpoint(model, optimizer, Config.device)
     model = model.float()
     model.eval()  # Ensure model is in evaluation mode
@@ -87,8 +87,8 @@ def generate_submissions():
                 "original_raw_max": float(original_raw_max) if original_raw_max is not None else None,
                 "output_raw_max": float(output_raw_max)
             })
-            
-                
+
+
     # Save statistics
     stats_path = os.path.join(Config.submission_save_dir, "processing_stats.json")
     with open(stats_path, "w") as f:
