@@ -11,17 +11,17 @@ class Config:
     loss = "l1"
     out_dir = "./results/restromer_l1"
     log_file = os.path.join(out_dir, "logs.json")
-    train_dir = "data/val"
+    train_dir = "data/train"
     val_dir = "data/val"
     patch_size = 128
     Submission_input = "data/Submission_input"
     submission_save_dir = "data/Restomer_results"
     train_batch_size = 1
     val_batch_size = 1
-    RESUME = False
+    RESUME = True
     model = "restormer"
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    patches = False
+    patches = True
     useHalf=False
 
 print(f"Using device: {Config.device}")

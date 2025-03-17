@@ -9,7 +9,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from tqdm import tqdm
 import wandb
-import math
 import glob
 
 from config import Config
@@ -51,11 +50,9 @@ def save_checkpoint(
             f,
         )
 
-    # Delete oldest checkpoints if exceeding max_checkpoints
     checkpoint_files = glob.glob(os.path.join(Config.out_dir, "best_model_*.pth"))
-    checkpoint_files.sort(key=os.path.getctime)  # Sort by creation time
+    checkpoint_files.sort(key=os.path.getctime) 
 
-    # If we have more than max_checkpoints files after adding the new one, delete oldest
     if len(checkpoint_files) > max_checkpoints:
         files_to_delete = checkpoint_files[: len(checkpoint_files) - max_checkpoints]
         for file_path in files_to_delete:
@@ -108,18 +105,18 @@ def load_checkpoint(model, optimizer, device):
 
             print("Checkpoint path from logs not found, trying default checkpoint.")
 
-    # default_checkpoint_path = os.path.join(Config.out_dir, "unet-raw-sr-best.pt")
-    # if os.path.exists(default_checkpoint_path):
-    #     checkpoint = torch.load(
-    #         default_checkpoint_path, map_location=device, weights_only=False
-    #     )
-    #     model.load_state_dict(checkpoint["model_state_dict"])
-    #     optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-    #     print(f"Loaded default checkpoint: {default_checkpoint_path}")
-    #     return 0, float("inf"), float("-inf")
+    default_checkpoint_path = os.path.join(Config.out_dir, "unet-raw-sr-best.pt")
+    if os.path.exists(default_checkpoint_path):
+        checkpoint = torch.load(
+            default_checkpoint_path, map_location=device, weights_only=False
+        )
+        model.load_state_dict(checkpoint["model_state_dict"])
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        print(f"Loaded default checkpoint: {default_checkpoint_path}")
+        return 0, float("inf"), float("-inf")
 
-    # print("No valid checkpoint found. Starting training from scratch.")
-    # return 0, float("inf"), float("-inf")
+    print("No valid checkpoint found. Starting training from scratch.")
+    return 0, float("inf"), float("-inf")
 
 
 def downsample_raw(raw):
@@ -221,3 +218,59 @@ def validate(model, val_loader, criterion):
         avg_val_loss, avg_psnr = np.mean(val_loss), np.mean(psnr_values)
 
     return avg_val_loss, avg_psnr
+
+
+def extract_patches(tensor, patch_size):
+    """
+    Divides the input tensor into patches and moves patches to the batch dimension.
+
+    Args:
+        tensor (torch.Tensor): Input tensor of shape (B, C, H, W)
+        patch_size (int): Size of each square patch
+
+    Returns:
+        tuple: (patches_tensor, num_patches) where:
+            - patches_tensor (torch.Tensor): Tensor with patches moved to batch dimension (B*num_patches, C, patch_size, patch_size)
+            - num_patches (int): Total number of patches extracted
+    """
+    B, C, H, W = tensor.shape
+    #assert H % patch_size == 0 and W % patch_size == 0, "H and W must be divisible by patch_size"
+
+    # Calculate number of patches in each dimension
+    patches_h = H // patch_size
+    patches_w = W // patch_size
+    
+    # Calculate total number of patches
+    num_patches = B * patches_h * patches_w
+
+    # Reshape and permute to extract patches
+    tensor = tensor.unfold(2, patch_size, patch_size).unfold(3, patch_size, patch_size)
+    tensor = tensor.permute(0, 2, 3, 1, 4, 5).contiguous()
+    tensor = tensor.view(num_patches, C, patch_size, patch_size)
+
+    return tensor, num_patches
+def select_random_patches(patches, num_patches=4):
+    """
+    Selects random patches from the batch of patches.
+
+    Args:
+        patches (torch.Tensor): Tensor of patches with shape (B*num_patches, C, patch_size, patch_size)
+        num_patches (int): Number of random patches to select
+
+    Returns:
+        torch.Tensor: Randomly selected patches
+    """
+    total_patches = patches.shape[0]
+    indices = torch.randperm(total_patches)[:num_patches]
+    return patches[indices]
+
+
+def downsample_raw(raw):
+    """
+    Downsamples a 4-channel packed RAW image by a factor of 2.
+    The input raw should be a [H/2, W/2, 4] tensor -- with respect to its mosaiced version [H,w]
+    Output is a [H/4, W/4, 4] tensor, preserving the RGGB pattern.
+    """
+    avg_pool = torch.nn.AvgPool2d(2, stride=2)
+    downsampled_image = avg_pool(raw)
+    return downsampled_image

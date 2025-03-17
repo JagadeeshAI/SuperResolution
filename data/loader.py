@@ -5,29 +5,7 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 from glob import glob
 from config import Config
-from data.make_patches import extract_patches, select_random_patches
-
-
-def downsample_raw(raw):
-    """
-    Downsamples a 4-channel packed RAW image by a factor of 2.
-    The input raw should be a [H/2, W/2, 4] tensor -- with respect to its mosaiced version [H,w]
-    Output is a [H/4, W/4, 4] tensor, preserving the RGGB pattern.
-    """
-    if len(raw.shape) == 3:  
-        raw = raw.permute(2, 0, 1).unsqueeze(0)  
-    elif len(raw.shape) == 4 and raw.shape[1] == 4:  
-        pass
-    else:
-        raise ValueError(f"Unexpected shape for raw: {raw.shape}")
-        
-    downsampled_image = F.avg_pool2d(raw, kernel_size=2, stride=2, padding=0)
-    
-    if len(raw.shape) == 4 and raw.shape[0] == 1:
-        downsampled_image = downsampled_image.squeeze(0).permute(1, 2, 0)
-        
-    return downsampled_image
-
+from utils.util import extract_patches, select_random_patches, downsample_raw
 
 class LazyRAWDataset(Dataset):
     def __init__(self, data_dir, use_patches=None):
@@ -194,7 +172,7 @@ def submission_collate(batch):
     return {"raw": raw_batch, "max": max_vals, "filename": filenames}
 
 
-def get_submission_loader(submission_dir=Config.Submission_input, num_workers=0, batch_size=1):
+def get_submission_loader(submission_dir=Config.Submission_input, num_workers=10, batch_size=1):
     """
     Creates a data loader for submission data - no patches, no downsampling.
     
@@ -225,46 +203,73 @@ def get_data_loaders(
     train_data_dir=Config.train_dir, 
     val_data_dir=Config.val_dir, 
     submission_dir=Config.Submission_input,
-    num_workers=0
+    num_workers=0,
+    Train_also=True
 ):
-    train_use_patches = Config.patches
-    print(f"Creating training dataset with patches={train_use_patches}")
-    train_dataset = LazyRAWDataset(train_data_dir, use_patches=train_use_patches)
+    if Train_also:
 
-    train_loader = DataLoader(
-        train_dataset,
-        batch_size=Config.train_batch_size,
-        shuffle=True,
-        num_workers=num_workers,
-        collate_fn=simple_collate,
-        pin_memory=True,
-    )
+        train_use_patches = Config.patches
+        print(f"Creating training dataset with patches={train_use_patches}")
+        train_dataset = LazyRAWDataset(train_data_dir, use_patches=train_use_patches)
 
-    print("Creating validation dataset with NO patches (full images)")
-    val_dataset = LazyRAWDataset(val_data_dir, use_patches=False)
-    val_loader = DataLoader(
-        val_dataset,
-        batch_size=Config.val_batch_size,
-        shuffle=False,
-        num_workers=num_workers,
-        collate_fn=simple_collate,
-        pin_memory=True,
-    )
-    
-    if submission_dir:
-        print(f"Creating submission dataset from {submission_dir}")
-        submission_dataset = SubmissionDataset(submission_dir)
-        submission_loader = DataLoader(
-            submission_dataset,
-            batch_size=1,  
-            shuffle=False,
+        train_loader = DataLoader(
+            train_dataset,
+            batch_size=Config.train_batch_size,
+            shuffle=True,
             num_workers=num_workers,
-            collate_fn=submission_collate,
+            collate_fn=simple_collate,
             pin_memory=True,
         )
 
-    return train_loader, val_loader, submission_loader
+        print("Creating validation dataset with NO patches (full images)")
+        val_dataset = LazyRAWDataset(val_data_dir, use_patches=False)
+        val_loader = DataLoader(
+            val_dataset,
+            batch_size=Config.val_batch_size,
+            shuffle=False,
+            num_workers=num_workers,
+            collate_fn=simple_collate,
+            pin_memory=True,
+        )
+        
+        if submission_dir:
+            print(f"Creating submission dataset from {submission_dir}")
+            submission_dataset = SubmissionDataset(submission_dir)
+            submission_loader = DataLoader(
+                submission_dataset,
+                batch_size=1,  
+                shuffle=False,
+                num_workers=num_workers,
+                collate_fn=submission_collate,
+                pin_memory=True,
+            )
 
+        return train_loader, val_loader, submission_loader
+    else:
+        print("Creating validation dataset with NO patches (full images)")
+        val_dataset = LazyRAWDataset(val_data_dir, use_patches=False)
+        val_loader = DataLoader(
+            val_dataset,
+            batch_size=Config.val_batch_size,
+            shuffle=False,
+            num_workers=num_workers,
+            collate_fn=simple_collate,
+            pin_memory=True,
+        )
+        
+        if submission_dir:
+            print(f"Creating submission dataset from {submission_dir}")
+            submission_dataset = SubmissionDataset(submission_dir)
+            submission_loader = DataLoader(
+                submission_dataset,
+                batch_size=1,  
+                shuffle=False,
+                num_workers=num_workers,
+                collate_fn=submission_collate,
+                pin_memory=True,
+            )
+        return val_loader ,submission_loader
+        
 
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

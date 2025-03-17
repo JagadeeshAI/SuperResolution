@@ -37,7 +37,7 @@ def validate():
         model, optimizer, Config.device
     )
     val_loss, psnr_values = [], []
-    train_loader, val_loader,_ = get_data_loaders()
+    val_loader,_ = get_data_loaders(val_only=True)
     with torch.no_grad():
         for batch in tqdm(val_loader, desc="Validation"):
             lr_raw = batch["lr"].to(Config.device)
