@@ -81,7 +81,7 @@ class LazyRAWDataset(Dataset):
             hr_img = torch.from_numpy(hr_img)
 
             if self.use_patches:
-                hr_patches,totalPatches = extract_patches(hr_img, patch_size=512)
+                hr_patches,_ = extract_patches(hr_img, patch_size=512)
                 hr_patch = hr_patches[patch_idx]
 
                 hr_patch_for_down = hr_patch.unsqueeze(0)  

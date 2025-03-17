@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import os
 
-
 class Config:
     lr = 1e-6
     lr_decay = 1e-6
@@ -22,7 +21,7 @@ class Config:
     RESUME = False
     model = "restormer"
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    patches = True
+    patches = False
     useHalf=False
 
 print(f"Using device: {Config.device}")

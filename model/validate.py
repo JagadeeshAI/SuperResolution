@@ -43,8 +43,8 @@ def validate():
             lr_raw = batch["lr"].to(Config.device)
             hr_raw = batch["hr"].to(Config.device)
 
-            # lr_raw = crop_img(lr_raw, base=16)
             output = model(crop_img(lr_raw))
+            
             output = F.interpolate(
                 output, size=hr_raw.shape[2:], mode="bilinear", align_corners=False
             )

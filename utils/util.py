@@ -104,22 +104,22 @@ def load_checkpoint(model, optimizer, device):
                 print(
                     f"Resuming training from epoch {last_epoch}, Best Loss: {best_val_loss:.4f}, Best PSNR: {best_psnr:.2f}"
                 )
-                return last_epoch, best_val_loss, best_psnr
+                return  last_epoch, best_val_loss, best_psnr
 
             print("Checkpoint path from logs not found, trying default checkpoint.")
 
-    default_checkpoint_path = os.path.join(Config.out_dir, "unet-raw-sr-best.pt")
-    if os.path.exists(default_checkpoint_path):
-        checkpoint = torch.load(
-            default_checkpoint_path, map_location=device, weights_only=False
-        )
-        model.load_state_dict(checkpoint["model_state_dict"])
-        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        print(f"Loaded default checkpoint: {default_checkpoint_path}")
-        return 0, float("inf"), float("-inf")
+    # default_checkpoint_path = os.path.join(Config.out_dir, "unet-raw-sr-best.pt")
+    # if os.path.exists(default_checkpoint_path):
+    #     checkpoint = torch.load(
+    #         default_checkpoint_path, map_location=device, weights_only=False
+    #     )
+    #     model.load_state_dict(checkpoint["model_state_dict"])
+    #     optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+    #     print(f"Loaded default checkpoint: {default_checkpoint_path}")
+    #     return 0, float("inf"), float("-inf")
 
-    print("No valid checkpoint found. Starting training from scratch.")
-    return 0, float("inf"), float("-inf")
+    # print("No valid checkpoint found. Starting training from scratch.")
+    # return 0, float("inf"), float("-inf")
 
 
 def downsample_raw(raw):
@@ -147,10 +147,14 @@ def define_Model():
     if Config.model == "unet":
         print("we are using unet model")
         model = UNet().to(device)
+        return model
     elif Config.model == "restormer":
         model = Restormer().to(device)
-    if model:
+        print("we have choosen the restromer")
         return model
+    else:
+        print("No model is choosen")
+        return None
 
 
 def update_last_epoch(last_epoch):
