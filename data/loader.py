@@ -22,7 +22,6 @@ class LazyRAWDataset(Dataset):
                             hr_img = data["raw"].astype(np.float32)
                             max_val = data["max_val"]
 
-                            hr_img = hr_img / max_val
                             hr_img = np.expand_dims(hr_img, axis=0)
                             hr_img = np.transpose(hr_img, (0, 3, 1, 2))
                             hr_img = torch.from_numpy(hr_img)
@@ -113,9 +112,11 @@ class LazyRAWDataset(Dataset):
                     "filename": os.path.basename(path),
                 }
             else:
-                # Check if the image is large enough for processing
+                
+                hr_img=hr_img.permute(0, 2, 1, 3)
                 if hr_img.shape[-1] < 8 or hr_img.shape[-2] < 8:
                     print(f"Image too small: {path} with shape {hr_img.shape}")
+                   
                     # Return dummy with proper dimensions
                     dummy_lr = torch.zeros((1, 4, 64, 64), dtype=torch.float32)
                     dummy_hr = torch.zeros((1, 4, 128, 128), dtype=torch.float32)
@@ -353,7 +354,7 @@ def get_data_loaders(
     train_data_dir=Config.train_dir, 
     val_data_dir=Config.val_dir, 
     submission_dir=Config.Submission_input,
-    num_workers=10,
+    num_workers=0,
     Train_also=True,
     force_batch_size=None  # Added parameter to override Config batch size
 ):

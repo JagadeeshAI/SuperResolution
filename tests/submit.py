@@ -11,6 +11,7 @@ import wandb
 from torch.cuda.amp import autocast, GradScaler
 from torch.nn.functional import interpolate
 import numpy as np
+import zipfile
 
 from model.unet import UNet
 from config import Config
@@ -28,7 +29,7 @@ def generate_submissions():
     )
     
     _, sub_loader = get_data_loaders(Train_also=False)
-    load_checkpoint(model, optimizer, Config.device)
+    last_epoch, best_val_loss, best_psnr=load_checkpoint(model, optimizer, Config.device)
     model = model.float()
     model.eval()  # Ensure model is in evaluation mode
     
@@ -94,7 +95,7 @@ def generate_submissions():
     with open(stats_path, "w") as f:
         json.dump(stats, f, indent=2)
     
-    print(f"All files processed and saved to {Config.submission_save_dir}")
+    print(f"All files processed and saved and ziped to {Config.submission_save_dir}")
     print(f"Statistics saved to {stats_path}")
 
 if __name__ == "__main__":

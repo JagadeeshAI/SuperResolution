@@ -52,3 +52,4 @@ pip-log.txt
 .vscode/
 .idea/
 /wandb
+cache/
