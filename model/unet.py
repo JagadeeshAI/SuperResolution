@@ -77,17 +77,19 @@ class UNet(nn.Module):
         super().__init__()
         # self.encoder = Encoder(chs=(4, 64, 128, 256, 512))
         # self.decoder = Decoder(chs=(512, 256, 128, 64))
-        # self.upsample = nn.PixelShuffle(2)  
-        # self.pre_pixelshuffle = nn.Conv2d(64, 16, 1)  
+        # self.upsample = nn.PixelShuffle(2)
+        # self.pre_pixelshuffle = nn.Conv2d(64, 16, 1)
         # self.final = nn.Conv2d(4, 4, 3, padding=1)
-        
-        self.encoder = Encoder(chs=(4, 32, 64, 128, 256))  # Reduced from (4, 64, 128, 256, 512)
-        self.decoder = Decoder(chs=(256, 128, 64, 32))    # Reduced from (512, 256, 128, 64)
-        self.upsample = nn.PixelShuffle(2)  
-        self.pre_pixelshuffle = nn.Conv2d(32, 16, 1)      # Reduced from 64 to 32
-        self.final = nn.Conv2d(4, 4, 3, padding=1)   
 
-        
+        self.encoder = Encoder(
+            chs=(4, 32, 64, 128, 256)
+        )  # Reduced from (4, 64, 128, 256, 512)
+        self.decoder = Decoder(
+            chs=(256, 128, 64, 32)
+        )  # Reduced from (512, 256, 128, 64)
+        self.upsample = nn.PixelShuffle(2)
+        self.pre_pixelshuffle = nn.Conv2d(32, 16, 1)  # Reduced from 64 to 32
+        self.final = nn.Conv2d(4, 4, 3, padding=1)
 
     def forward(self, x):
         input_h, input_w = x.shape[2], x.shape[3]

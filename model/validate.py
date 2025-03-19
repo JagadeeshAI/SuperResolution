@@ -36,11 +36,11 @@ def validateNow():
     start_epoch, best_val_loss, best_psnr = load_checkpoint(
         model, optimizer, Config.device
     )
-    
+
     val_loss, psnr_values = [], []
-    
-    val_loader,_ = get_data_loaders(Train_also=False)
-    
+
+    val_loader, _ = get_data_loaders(Train_also=False)
+
     avg_val_loss, avg_psnr = validate(model, val_loader, criterion)
 
     print(f"The avergae PSNR is {avg_psnr}")

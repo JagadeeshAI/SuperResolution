@@ -51,7 +51,7 @@ def save_checkpoint(
         )
 
     checkpoint_files = glob.glob(os.path.join(Config.out_dir, "best_model_*.pth"))
-    checkpoint_files.sort(key=os.path.getctime) 
+    checkpoint_files.sort(key=os.path.getctime)
 
     if len(checkpoint_files) > max_checkpoints:
         files_to_delete = checkpoint_files[: len(checkpoint_files) - max_checkpoints]
@@ -101,7 +101,7 @@ def load_checkpoint(model, optimizer, device):
                 print(
                     f"Resuming training from epoch {last_epoch}, Best Loss: {best_val_loss:.4f}, Best PSNR: {best_psnr:.2f}"
                 )
-                return  last_epoch, best_val_loss, best_psnr
+                return last_epoch, best_val_loss, best_psnr
 
             print("Checkpoint path from logs not found, trying default checkpoint.")
 
@@ -125,19 +125,20 @@ def downsample_raw(raw):
     The input raw should be a [H/2, W/2, 4] tensor -- with respect to its mosaiced version [H,w]
     Output is a [H/4, W/4, 4] tensor, preserving the RGGB pattern.
     """
-    if len(raw.shape) == 3:  
-        raw = raw.permute(2, 0, 1).unsqueeze(0)  
-    elif len(raw.shape) == 4 and raw.shape[1] == 4:  
+    if len(raw.shape) == 3:
+        raw = raw.permute(2, 0, 1).unsqueeze(0)
+    elif len(raw.shape) == 4 and raw.shape[1] == 4:
         pass
     else:
         raise ValueError(f"Unexpected shape for raw: {raw.shape}")
-        
+
     downsampled_image = F.avg_pool2d(raw, kernel_size=2, stride=2, padding=0)
-    
+
     if len(raw.shape) == 4 and raw.shape[0] == 1:
         downsampled_image = downsampled_image.squeeze(0).permute(1, 2, 0)
-        
+
     return downsampled_image
+
 
 def define_Model():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -234,12 +235,12 @@ def extract_patches(tensor, patch_size):
             - num_patches (int): Total number of patches extracted
     """
     B, C, H, W = tensor.shape
-    #assert H % patch_size == 0 and W % patch_size == 0, "H and W must be divisible by patch_size"
+    # assert H % patch_size == 0 and W % patch_size == 0, "H and W must be divisible by patch_size"
 
     # Calculate number of patches in each dimension
     patches_h = H // patch_size
     patches_w = W // patch_size
-    
+
     # Calculate total number of patches
     num_patches = B * patches_h * patches_w
 
@@ -249,6 +250,8 @@ def extract_patches(tensor, patch_size):
     tensor = tensor.view(num_patches, C, patch_size, patch_size)
 
     return tensor, num_patches
+
+
 def select_random_patches(patches, num_patches=4):
     """
     Selects random patches from the batch of patches.

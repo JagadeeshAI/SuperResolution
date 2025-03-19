@@ -220,15 +220,15 @@ class Upsample(nn.Module):
 class Restormer(nn.Module):
     def __init__(
         self,
-        inp_channels=4,
+        inp_channels=4,  # Set to 4 for the specified input shape
         out_channels=4,
-        dim=12,
-        num_blocks=[4, 6, 6, 8],
+        dim=16,
+        num_blocks=[2, 2, 4, 8],
         num_refinement_blocks=4,
         heads=[1, 2, 4, 8],
-        ffn_expansion_factor=2.66,
+        ffn_expansion_factor=1.25,
         bias=False,
-        LayerNorm_type="WithBias",  ## Other option 'BiasFree'
+        LayerNorm_type="WithBias",
         dual_pixel_task=False,  ## True for dual-pixel defocus deblurring only. Also set inp_channels=6
     ):
 
@@ -425,11 +425,11 @@ if __name__ == "__main__":
     model = Restormer(
         inp_channels=4,  # Set to 4 for the specified input shape
         out_channels=4,
-        dim=12,
-        num_blocks=[4, 6, 6, 8],
+        dim=16,
+        num_blocks=[2, 2, 4, 8],
         num_refinement_blocks=4,
         heads=[1, 2, 4, 8],
-        ffn_expansion_factor=2.66,
+        ffn_expansion_factor=1.25,
         bias=False,
         LayerNorm_type="WithBias",
         dual_pixel_task=False,

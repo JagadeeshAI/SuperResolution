@@ -19,7 +19,7 @@ from utils.util import (
     define_Model,
     update_last_epoch,
     validate,
-    crop_img
+    crop_img,
 )
 from data.loader import get_data_loaders
 
@@ -42,7 +42,7 @@ def train():
     elif Config.loss == "l1":
         criterion = nn.L1Loss()
 
-    train_loader, val_loader,_ = get_data_loaders()
+    train_loader, val_loader, _ = get_data_loaders()
 
     start_epoch, best_val_loss, best_psnr = load_checkpoint(
         model, optimizer, Config.device
@@ -50,7 +50,7 @@ def train():
 
     for epoch in range(start_epoch, Config.epochs):
         model.train()
-        model=model.float()
+        model = model.float()
         train_loss = []
 
         for batch in tqdm(train_loader, desc=f"Epoch {epoch+1}/{Config.epochs}"):
