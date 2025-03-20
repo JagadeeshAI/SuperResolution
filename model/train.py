@@ -37,6 +37,10 @@ def train():
         model.parameters(), lr=Config.lr, weight_decay=Config.lr_decay
     )
 
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=Config.epochs, eta_min=1e-6
+    )
+
     if Config.loss == "mse":
         criterion = nn.MSELoss()
     elif Config.loss == "l1":
@@ -52,7 +56,7 @@ def train():
         model.train()
         model = model.float()
         train_loss = []
-
+        current_lr = optimizer.param_groups[0]["lr"]
         for batch in tqdm(train_loader, desc=f"Epoch {epoch+1}/{Config.epochs}"):
 
             lr_raw = batch["lr"].to(Config.device).float()
@@ -81,7 +85,7 @@ def train():
         avg_val_loss, avg_psnr = validate(model, val_loader, criterion)
 
         print(
-            f"Epoch {epoch+1}/{Config.epochs} - Train Loss: {epoch_loss:.6f}, Val Loss: {avg_val_loss:.6f}, PSNR: {avg_psnr:.2f} dB"
+            f"Epoch {epoch+1}/{Config.epochs} - Train Loss: {epoch_loss:.6f}, Val Loss: {avg_val_loss:.6f}, PSNR: {avg_psnr:.2f} dB and the curren learning rate is {current_lr}"
         )
 
         update_last_epoch(epoch)
@@ -92,8 +96,11 @@ def train():
                 "Train Loss": epoch_loss,
                 "Val Loss": avg_val_loss,
                 "PSNR": avg_psnr,
+                "Learning Rate": current_lr,
             }
         )
+
+        scheduler.step()
 
         # Save model if validation loss improves OR PSNR improves
         if avg_val_loss < best_val_loss or avg_psnr > best_psnr:

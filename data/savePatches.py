@@ -11,7 +11,6 @@ from utils.util import extract_patches
 def extract_and_save_patches(
     data_dir=Config.train_dir,
     cache_dir="./data/trainPatches",
-    patches_per_chunk=None,  # Removed as we're saving individual patches
 ):
     """
     Extract patches from images and save them as individual .npz files
