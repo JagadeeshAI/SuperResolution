@@ -11,6 +11,7 @@ import wandb
 from torch.cuda.amp import autocast, GradScaler
 from torch.nn.functional import interpolate
 
+from basicsr.archs.mambairv2_arch import MambaIRv2
 
 from config import Config
 from utils.util import (
@@ -31,8 +32,22 @@ def train():
     """Train the UNet model for RAW Super-Resolution."""
     os.makedirs(Config.out_dir, exist_ok=True)
 
-    model = define_Model()
-    model.gradient_checkpointing = True
+    model = MambaIRv2(
+        upscale=2,
+        img_size=128,
+        embed_dim=48,
+        d_state=8,
+        depths=[5, 5, 5, 5],
+        num_heads=[4, 4, 4, 4],
+        window_size=16,
+        inner_rank=32,
+        num_tokens=64,
+        convffn_kernel_size=5,
+        mlp_ratio=1.,
+        upsampler='pixelshuffledirect',
+        in_chans=4 
+    ).to(Config.device) 
+
     optimizer = torch.optim.Adam(
         model.parameters(), lr=Config.lr, weight_decay=Config.lr_decay
     )
@@ -58,21 +73,12 @@ def train():
         train_loss = []
         current_lr = optimizer.param_groups[0]["lr"]
         for batch in tqdm(train_loader, desc=f"Epoch {epoch+1}/{Config.epochs}"):
-
             lr_raw = batch["lr"].to(Config.device).float()
             hr_raw = batch["hr"].to(Config.device).float()
-
+            
             optimizer.zero_grad()
 
-            output = model(crop_img(lr_raw))
-
-            if output.shape != hr_raw.shape:
-                output = interpolate(
-                    output,
-                    size=(hr_raw.shape[2], hr_raw.shape[3]),
-                    mode="bilinear",
-                    align_corners=False,
-                )
+            output = model(lr_raw)
 
             loss = criterion(output, hr_raw)
             loss.backward()
@@ -85,7 +91,7 @@ def train():
         avg_val_loss, avg_psnr = validate(model, val_loader, criterion)
 
         print(
-            f"Epoch {epoch+1}/{Config.epochs} - Train Loss: {epoch_loss:.6f}, Val Loss: {avg_val_loss:.6f}, PSNR: {avg_psnr:.2f} dB and the curren learning rate is {current_lr}"
+            f"Epoch {epoch+1}/{Config.epochs} - Train Loss: {epoch_loss:.6f}, Val Loss: {avg_val_loss:.6f}, PSNR: {avg_psnr:.2f} dB "
         )
 
         update_last_epoch(epoch)

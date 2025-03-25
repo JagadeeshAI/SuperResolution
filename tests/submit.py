@@ -20,9 +20,26 @@ from model.Restromer import Restormer
 from utils.util import load_checkpoint, define_Model
 from data.loader import get_data_loaders
 
+from basicsr.archs.mambairv2_arch import MambaIRv2
+
 
 def generate_submissions():
-    model = define_Model()
+    model = MambaIRv2(
+        upscale=2,
+        img_size=128,
+        embed_dim=48,
+        d_state=8,
+        depths=[5, 5, 5, 5],
+        num_heads=[4, 4, 4, 4],
+        window_size=16,
+        inner_rank=32,
+        num_tokens=64,
+        convffn_kernel_size=5,
+        mlp_ratio=1.,
+        upsampler='pixelshuffledirect',
+        in_chans=4 
+    ).to(Config.device) 
+    
     optimizer = torch.optim.Adam(
         model.parameters(), lr=Config.lr, weight_decay=Config.lr_decay
     )
@@ -32,7 +49,7 @@ def generate_submissions():
         model, optimizer, Config.device
     )
     model = model.float()
-    model.eval()  # Ensure model is in evaluation mode
+    model.eval()  
 
     # Track statistics for reporting
     stats = []

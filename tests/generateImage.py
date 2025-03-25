@@ -17,6 +17,7 @@ from utils.util import define_Model, load_checkpoint
 for i in range(40):
     if i==0:
         continue
-    raw=np.load(f"data/Restomer_results_fnn_1_25/{i}.npz")
-    max_val=raw['raw']
-    print(f"max of {i}.npz is {raw}")
+    raw = np.load(f"data/valPatches50/{i}.npz")
+    max_val = raw['max_val']
+    raw_data = raw['raw']
+    print(f"max of {i}.npz is {max_val}, shape: {raw_data.shape}")

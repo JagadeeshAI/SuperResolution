@@ -26,7 +26,6 @@ def extract_and_save_patches(
     data_paths = sorted(glob(os.path.join(data_dir, "*.npz")))
     print(f"Found {len(data_paths)} images in {data_dir}")
 
-    # Delete any existing patches for this dataset to start fresh
     base_name = os.path.basename(data_dir)
     existing_patches = glob(os.path.join(cache_dir, "*.npz"))
     if existing_patches:
@@ -42,7 +41,6 @@ def extract_and_save_patches(
             print("Using existing patches. Exiting...")
             return
 
-    # Track total patches and current patch index for naming
     total_patches = 0
     current_patch_idx = 1
 
@@ -55,14 +53,13 @@ def extract_and_save_patches(
                 hr_img = data["raw"].astype(np.float32)
                 max_val = data["max_val"]
 
-                hr_img = hr_img / max_val
                 hr_img = np.expand_dims(hr_img, axis=0)
                 hr_img = np.transpose(hr_img, (0, 3, 1, 2))
                 hr_img = torch.from_numpy(hr_img)
 
                 # Extract patches using the utility function
                 hr_patches, total_patches_count = extract_patches(
-                    hr_img, patch_size=512
+                    hr_img, patch_size=256
                 )
 
                 # Process all patches

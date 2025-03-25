@@ -2,7 +2,7 @@ import torch
 import os
 
 # Path to the checkpoint file
-checkpoint_path = "/media/jagadeesh/New Volume/Jagadeesh/SuperResolution/results/best_model_20250318-085923_epoch123_loss0.0150_PSNR30.42.pth"
+checkpoint_path = "results/basic/best_model_20250323-214325_epoch2_loss0.0876_PSNR18.64.pth"
 
 
 # Function to load and print checkpoint information

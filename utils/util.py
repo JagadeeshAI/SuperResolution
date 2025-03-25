@@ -201,24 +201,63 @@ def validate(model, val_loader, criterion):
     val_loss, psnr_values = [], []
     with torch.no_grad():
         for batch in tqdm(val_loader, desc="Validation"):
+            
             lr_raw = batch["lr"].to(Config.device)
             hr_raw = batch["hr"].to(Config.device)
 
-            lr_raw = crop_img(lr_raw, base=16)
-            output = model(lr_raw)
-            output = F.interpolate(
-                output, size=hr_raw.shape[2:], mode="bilinear", align_corners=False
-            )
+            output=model(lr_raw)
 
             loss = criterion(hr_raw, output)
 
             val_loss.append(loss.item())
-            psnr = calculate_psnr(output, hr_raw)
+
+            psnr = calculate_psnr(output,hr_raw)
             psnr_values.append(psnr)
+            # print(f"The avg psnr is {np.mean(psnr_values)}")
 
         avg_val_loss, avg_psnr = np.mean(val_loss), np.mean(psnr_values)
 
     return avg_val_loss, avg_psnr
+
+
+def extract_patches_rect(tensor, patch_size=None):
+    """
+    Extracts a single rectangular patch from the center of the image
+    with dimensions based on the smaller dimension plus 50%.
+
+    Args:
+        tensor (torch.Tensor): Input tensor of shape (B, C, H, W)
+        patch_size (int or None): Not used, kept for compatibility
+
+    Returns:
+        tuple: (patches_tensor, num_patches) where:
+            - patches_tensor (torch.Tensor): Tensor with a single patch per batch item
+            - num_patches (int): Number of patches (equal to batch size)
+    """
+    B, C, H, W = tensor.shape
+    
+    # Determine patch size based on min dimension + 50%
+    min_dim = min(H, W)
+    extra = min_dim * 1
+    
+    if min_dim == H:
+        # Height is smaller, add extra to width
+        patch_h = min_dim
+        patch_w = min(W, int(min_dim + extra))
+    else:
+        # Width is smaller, add extra to height
+        patch_w = min_dim
+        patch_h = min(H, int(min_dim + extra))
+    
+    # Calculate center position
+    start_h = (H - patch_h) // 2
+    start_w = (W - patch_w) // 2
+    
+    # Extract center patch for each item in batch
+    patches = tensor[:, :, start_h:start_h+patch_h, start_w:start_w+patch_w]
+    
+    # Return patches and count (one patch per batch item)
+    return patches, B
 
 
 def extract_patches(tensor, patch_size):

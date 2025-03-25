@@ -5,8 +5,17 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 from glob import glob
 from config import Config
-from utils.util import downsample_raw
+from utils.util import downsample_raw,extract_patches
 
+def ensure_bchw_format(img):
+        if img.dim() == 3:
+            img = img.permute(2, 0, 1).unsqueeze(0)
+        elif img.dim() == 4 and img.shape[1] != 3 and img.shape[1] != 4:
+            if img.shape[-1] == 3 or img.shape[-1] == 4:
+                img = img.permute(0, 3, 1, 2)
+            elif img.shape[2] == 3 or img.shape[2] == 4:
+                img = img.permute(0, 2, 3, 1)
+        return img
 
 class LazyRAWDataset(Dataset):
     def __init__(self, data_dir, is_val=False):
@@ -22,58 +31,25 @@ class LazyRAWDataset(Dataset):
     def __getitem__(self, idx):
         try:
             path = self.data_paths[idx]
-
             hr_data = np.load(path)
-            hr_img = hr_data["raw"].astype(np.float32)
+            hr_img = hr_data["raw"].astype(np.float32) / hr_data["max_val"]
             max_val = hr_data["max_val"]
-
-            # Normalize
-            hr_img = hr_img / max_val
-
-            # Initial shaping
-            hr_img = np.expand_dims(hr_img, axis=0)
-            hr_img = np.transpose(hr_img, (0, 3, 1, 2))  # [B, C, H, W]
-            hr_img = torch.from_numpy(hr_img)
-
-            # For training path
+            
+            hr_img = torch.from_numpy(np.expand_dims(hr_img, axis=0))
+            
             if not self.is_val:
-                hr_img = hr_img.permute(0, 2, 1, 3)  # [B, H, C, W] for training
-                lr_img = downsample_raw(hr_img)
-
-                # Handle dimension variations
-                if lr_img.dim() == 3:
-                    lr_img = lr_img.permute(2, 0, 1).unsqueeze(0)
-                elif lr_img.dim() == 4:
-                    if lr_img.shape[1] == 3 or lr_img.shape[1] == 4:
-                        # Channels already in correct position
-                        pass
-                    else:
-                        lr_img = lr_img.permute(0, 3, 1, 2)
-            # For validation path
+                hr_img = hr_img.permute(0, 3, 1, 2)  
             else:
-                # Keep original format for validation
-                lr_img = downsample_raw(hr_img)
+                hr_img = hr_img.permute(0, 3, 1, 2)
 
-                # Only permute if needed
-                if not (lr_img.shape[1] == 3 or lr_img.shape[1] == 4):
-                    if lr_img.dim() == 3:
-                        lr_img = lr_img.permute(2, 0, 1).unsqueeze(0)
-                    elif lr_img.dim() == 4:
-                        lr_img = lr_img.permute(0, 3, 1, 2)
+            hr_img = ensure_bchw_format(hr_img)
 
-            # Make sure final tensors are in BCHW format
-            # If channels are not in dimension 1, fix
-            if hr_img.shape[1] != 3 and hr_img.shape[1] != 4:
-                if hr_img.shape[-1] == 3 or hr_img.shape[-1] == 4:
-                    hr_img = hr_img.permute(0, 3, 1, 2)
-                elif hr_img.shape[2] == 3 or hr_img.shape[2] == 4:
-                    hr_img = hr_img.permute(0, 2, 3, 1)
-
-            if lr_img.shape[1] != 3 and lr_img.shape[1] != 4:
-                if lr_img.shape[-1] == 3 or lr_img.shape[-1] == 4:
-                    lr_img = lr_img.permute(0, 3, 1, 2)
-                elif lr_img.shape[2] == 3 or lr_img.shape[2] == 4:
-                    lr_img = lr_img.permute(0, 2, 3, 1)
+            if hr_img.shape[2] % 2 != 0:
+                hr_img = hr_img[:, :, :-1, :]  
+            if hr_img.shape[3] % 2 != 0: 
+                hr_img = hr_img[:, :, :, :-1]
+            
+            lr_img = downsample_raw(hr_img)
 
             return {
                 "lr": lr_img,
@@ -82,10 +58,7 @@ class LazyRAWDataset(Dataset):
                 "filename": os.path.basename(path),
             }
         except Exception as e:
-            print(
-                f"Skipping {path if 'path' in locals() else 'unknown path'}: {str(e)}"
-            )
-
+            print(f"Skipping {path if 'path' in locals() else 'unknown path'}: {str(e)}")
 
 class SubmissionDataset(Dataset):
     def __init__(self, data_dir):

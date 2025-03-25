@@ -11,7 +11,7 @@ from tqdm import tqdm
 # import wandb
 from torch.cuda.amp import autocast, GradScaler
 from torch.nn.functional import interpolate
-
+from model.Restromer import Restormer
 
 from config import Config
 from utils.util import (
@@ -26,11 +26,30 @@ from utils.util import (
 from data.loader import get_data_loaders
 from model.unet import UNet
 
+from basicsr.archs.mambairv2_arch import MambaIRv2
+
+
 criterion = nn.L1Loss()
 
 
 def validateNow():
-    model = define_Model()
+    
+    model = MambaIRv2(
+        upscale=2,
+        img_size=128,
+        embed_dim=48,
+        d_state=8,
+        depths=[5, 5, 5, 5],
+        num_heads=[4, 4, 4, 4],
+        window_size=16,
+        inner_rank=32,
+        num_tokens=64,
+        convffn_kernel_size=5,
+        mlp_ratio=1.,
+        upsampler='pixelshuffledirect',
+        in_chans=4 
+    ).to(Config.device)  
+
     optimizer = torch.optim.Adam(
         model.parameters(), lr=Config.lr, weight_decay=Config.lr_decay
     )
