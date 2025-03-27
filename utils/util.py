@@ -205,6 +205,9 @@ def validate(model, val_loader, criterion):
             lr_raw = batch["lr"].to(Config.device)
             hr_raw = batch["hr"].to(Config.device)
 
+            lr_raw = lr_raw.squeeze(1)
+            hr_raw = hr_raw.squeeze(1)
+
             output=model(lr_raw)
 
             loss = criterion(hr_raw, output)
