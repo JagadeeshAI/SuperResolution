@@ -129,17 +129,24 @@ def submission_collate(batch):
     valid_batch = [item for item in batch if item is not None]
 
     if not valid_batch:
-        return {
-            "raw": torch.zeros((1, 4, 64, 64), dtype=torch.float32),
-            "max": 1.0,
-            "filename": ["dummy.npz"],
-        }
+        raise ValueError("Empty batch encountered")  # This will cause DataLoader to skip this batch
 
-    # Always return just the first item for consistency
+    # Handle max values properly by ensuring they're all scalars
+    max_values = []
+    for item in valid_batch:
+        max_val = item["max"]
+        # Convert tensor or ndarray to scalar if needed
+        if isinstance(max_val, (torch.Tensor, np.ndarray)):
+            max_val = float(max_val.item())  # Safely convert to Python scalar
+        else:
+            max_val = float(max_val)  # Ensure it's a float
+        max_values.append(max_val)
+
+
     return {
-        "raw": valid_batch[0]["raw"],
-        "max": valid_batch[0]["max"],
-        "filename": [valid_batch[0]["filename"]],
+        "raw":torch.stack([item["raw"] for item in valid_batch]),
+        "max": torch.tensor(max_values),
+        "filename": [item["filename"] for item in valid_batch],
     }
 
 
