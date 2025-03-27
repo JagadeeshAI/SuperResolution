@@ -7,7 +7,7 @@ class Config:
     lr_decay = 1e-6
     epochs = 1000
     loss = "l1"
-    batch_size = 16
+    batch_size = 2
     out_dir = "./results/mambair"
     log_file = os.path.join(out_dir, "logs.json")
     train_dir = "data/trainPatches"

@@ -28,18 +28,6 @@ def extract_and_save_patches(
 
     base_name = os.path.basename(data_dir)
     existing_patches = glob(os.path.join(cache_dir, "*.npz"))
-    if existing_patches:
-        print(f"Found {len(existing_patches)} existing patch files.")
-        user_response = input(
-            "Do you want to delete existing patches and recreate them? (y/n): "
-        )
-        if user_response.lower() == "y":
-            for patch_file in existing_patches:
-                os.remove(patch_file)
-            print(f"Deleted {len(existing_patches)} existing patch files.")
-        else:
-            print("Using existing patches. Exiting...")
-            return
 
     total_patches = 0
     current_patch_idx = 1
@@ -67,7 +55,7 @@ def extract_and_save_patches(
                     hr_patch = hr_patches[patch_idx]
 
                     # Skip patches that are too small
-                    if hr_patch.shape[-1] < 8 or hr_patch.shape[-2] < 8:
+                    if hr_patch.shape[-1] < 256 or hr_patch.shape[-2] < 256:
                         continue
 
                     # Convert patch to numpy for saving

@@ -102,20 +102,25 @@ def simple_collate(batch):
     valid_batch = [item for item in batch if item is not None]
 
     if not valid_batch:
-        return {
-            "lr": torch.zeros((1, 4, 64, 64), dtype=torch.float32),
-            "hr": torch.zeros((1, 4, 128, 128), dtype=torch.float32),
-            "max": 1.0,
-            "filename": ["dummy.npz"],
-        }
+        raise ValueError("Empty batch encountered")  # This will cause DataLoader to skip this batch
 
-    # For validation/submission, always return the first item (batch_size=1)
-    # This bypasses any concatenation issues with inconsistent tensor shapes
+    # Handle max values properly by ensuring they're all scalars
+    max_values = []
+    for item in valid_batch:
+        max_val = item["max"]
+        # Convert tensor or ndarray to scalar if needed
+        if isinstance(max_val, (torch.Tensor, np.ndarray)):
+            max_val = float(max_val.item())  # Safely convert to Python scalar
+        else:
+            max_val = float(max_val)  # Ensure it's a float
+        max_values.append(max_val)
+
+
     return {
-        "lr": valid_batch[0]["lr"],
-        "hr": valid_batch[0]["hr"],
-        "max": valid_batch[0]["max"],
-        "filename": [valid_batch[0]["filename"]],
+        "lr": torch.stack([item["lr"] for item in valid_batch]),
+        "hr": torch.stack([item["hr"] for item in valid_batch]),
+        "max": torch.tensor(max_values),
+        "filename": [item["filename"] for item in valid_batch],
     }
 
 

@@ -25,7 +25,7 @@ from utils.util import (
 from data.loader import get_data_loaders
 
 
-wandb.init(project="RAW-SuperResolution", name="UNet-MSE-Training")
+# wandb.init(project="RAW-SuperResolution", name="UNet-MSE-Training")
 
 
 def train():
@@ -76,6 +76,9 @@ def train():
             lr_raw = batch["lr"].to(Config.device).float()
             hr_raw = batch["hr"].to(Config.device).float()
             
+            lr_raw = lr_raw.squeeze(1)
+            hr_raw = hr_raw.squeeze(1)
+
             optimizer.zero_grad()
 
             output = model(lr_raw)
@@ -96,15 +99,15 @@ def train():
 
         update_last_epoch(epoch)
 
-        wandb.log(
-            {
-                "Epoch": epoch + 1,
-                "Train Loss": epoch_loss,
-                "Val Loss": avg_val_loss,
-                "PSNR": avg_psnr,
-                "Learning Rate": current_lr,
-            }
-        )
+        # wandb.log(
+        #     {
+        #         "Epoch": epoch + 1,
+        #         "Train Loss": epoch_loss,
+        #         "Val Loss": avg_val_loss,
+        #         "PSNR": avg_psnr,
+        #         "Learning Rate": current_lr,
+        #     }
+        # )
 
         scheduler.step()
 
